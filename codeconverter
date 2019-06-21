@@ -1,0 +1,402 @@
+import time
+import telebot
+import datetime
+import constant
+
+from telebot import types
+from forex_python.converter import CurrencyRates, get_rates, RatesNotAvailableError
+from pint import UnitRegistry, set_application_registry, UndefinedUnitError
+
+ureg = UnitRegistry()
+set_application_registry(ureg)
+
+#библиотеки
+
+greetings = ('здравствуй', 'привет', 'хай', 'здорово', 'hi', 'hello')
+now = datetime.datetime.now()
+
+token = constant.token
+bot = telebot.TeleBot(token)
+
+
+list = []
+
+@bot.message_handler(content_types=['text'])
+
+def greeting(message):
+    #приветствие, в зависимости от времени суток отправляется разный стикер в ответ вместе с клавиатурой
+    if message.text.lower() in greetings:
+        today = now.day
+        hour = now.hour
+
+        while True:
+
+            if today == now.day and 6 <= hour < 12:
+                bot.send_document(chat_id=message.chat.id, data="CAADAgADNQADH0xEDHv1G_NRh6-6Ag")
+                today += 1
+                markup = types.InlineKeyboardMarkup(row_width=1)
+                itembtn1 = types.InlineKeyboardButton("Включить конвертер величин", callback_data="first")
+                itembtn2 = types.InlineKeyboardButton("Показать курс валют", callback_data="second")
+                itembtn3 = types.InlineKeyboardButton("Включить конвертер валют", callback_data="third")
+                markup.add(itembtn1, itembtn2, itembtn3)
+                bot.send_message(message.chat.id, "Выберите, пожалуйста", reply_markup=markup)
+
+            elif today == now.day and 12 <= hour < 17:
+                bot.send_document(chat_id=message.chat.id, data="CAADAgAD8wMAAlrmjhFXAAESHYTiOwkC")
+                today += 1
+                markup = types.InlineKeyboardMarkup(row_width=1)
+                itembtn1 = types.InlineKeyboardButton("Включить конвертер величин", callback_data="first")
+                itembtn2 = types.InlineKeyboardButton("Показать курс валют", callback_data="second")
+                itembtn3 = types.InlineKeyboardButton("Включить конвертер валют", callback_data="third")
+                markup.add(itembtn1, itembtn2, itembtn3)
+                bot.send_message(message.chat.id, "Выберите, пожалуйста", reply_markup=markup)
+
+            elif today == now.day and 17 <= hour < 24:
+                bot.send_document(chat_id=message.chat.id, data="CAADAgADUQADCcWmA9UhtvR6NSQnAg")
+                today += 1
+                markup = types.InlineKeyboardMarkup(row_width=1)
+                itembtn1 = types.InlineKeyboardButton("Включить конвертер величин", callback_data="first")
+                itembtn2 = types.InlineKeyboardButton("Показать курс валют", callback_data="second")
+                itembtn3 = types.InlineKeyboardButton("Включить конвертер валют", callback_data="third")
+                markup.add(itembtn1, itembtn2, itembtn3)
+                bot.send_message(message.chat.id, "Выберите, пожалуйста", reply_markup=markup)
+
+            elif today == now.day and 0 <= hour < 6:
+                bot.send_document(chat_id=message.chat.id, data="CAADAgADUQADCcWmA9UhtvR6NSQnAg")
+                today += 1
+                markup = types.InlineKeyboardMarkup(row_width=1)
+                itembtn1 = types.InlineKeyboardButton("Включить конвертер величин", callback_data="first")
+                itembtn2 = types.InlineKeyboardButton("Показать курс валют", callback_data="second")
+                itembtn3 = types.InlineKeyboardButton("Включить конвертер валют", callback_data="third")
+                markup.add(itembtn1, itembtn2, itembtn3)
+                bot.send_message(message.chat.id, "Выберите, пожалуйста", reply_markup=markup)
+    else:
+        bot.send_message(message.chat.id, "Пожалуйста, скажите привет")
+
+
+@bot.callback_query_handler(func=lambda call: True)
+
+def handle(message):
+    if message.data == "first":
+        #при выборе первой кнопки открывается новая клавиатура с выбором величины
+        markup = types.InlineKeyboardMarkup(row_width=1)
+        itembtn11 = types.InlineKeyboardButton("Скорость", callback_data="speed")
+        itembtn12 = types.InlineKeyboardButton("Время", callback_data="tim")
+        itembtn13 = types.InlineKeyboardButton("Длина", callback_data="leng")
+        markup.add(itembtn11, itembtn12, itembtn13)
+        bot.send_message(chat_id=message.message.chat.id, text="Выберите, пожалуйста", reply_markup=markup)
+    elif message.data == "second":
+        #при выборе второй кнопки выполняется запрос курса валют
+        kypc(message)
+    elif message.data == "third":
+        #при выборе третьей кнопки включается конвертер валют
+        queskolko(message)
+    elif message.data == "first1":
+        #при выборе первой кнопки на клавиатуре перезапуска возвращает к первой клавиатуре
+        markup = types.InlineKeyboardMarkup(row_width=1)
+        itembtn1 = types.InlineKeyboardButton("Включить конвертер величин", callback_data="first")
+        itembtn2 = types.InlineKeyboardButton("Показать курс валют", callback_data="second")
+        itembtn3 = types.InlineKeyboardButton("Включить конвертер валют", callback_data="third")
+        markup.add(itembtn1, itembtn2, itembtn3)
+        bot.send_message(chat_id=message.message.chat.id, text="Выберите, пожалуйста", reply_markup=markup)
+        # КЛАВИАТУРА
+    elif message.data == "second1":
+        #при выборе второй кнопки на клавиатуре перезапуска отправляет стикер
+        bot.send_document(chat_id=message.message.chat.id, data="CAADAgADcAIAAlrmjhFlhM5RwMx1AwI")
+    elif message.data == "speed":
+        skorost(message)
+        # направление на данную функцию
+    elif message.data == "tim":
+        vremya(message)
+        # направление на данную функцию
+    elif message.data == "leng":
+        dlina(message)
+        # направление на данную функцию
+
+def skorost(message):
+    #конвертер сткорости
+    bot.send_message(chat_id=message.message.chat.id, text="Список величин: mile_per_hour = mph = MPH, \
+kilometer_per_hour = kph = KPH, kilometer_per_second = kps, meter_per_second = mps, foot_per_second= fps")
+    queskorost = bot.send_message(chat_id=message.message.chat.id, text="Скажите, пожалуйста, сколько перевести?")
+    bot.register_next_step_handler(queskorost, queskorostizchego)
+
+def queskorostizchego(message):
+    #получение данных о количестве
+    try:
+        float(message.text)
+    except ValueError:
+        bot.send_message(chat_id=message.chat.id, text="Пожалуйста, используйте числа")
+        queskorost = bot.send_message(chat_id=message.chat.id, text="Сколько?")
+        bot.register_next_step_handler(queskorost, queskorostizchego)
+    else:
+        skorostquantity = list.append(message.text)
+        queskorost1 = bot.send_message(chat_id=message.chat.id, text="Из чего?")
+        bot.register_next_step_handler(queskorost1, queskorostvochto)
+
+def queskorostvochto(message):
+    #получение данных о мере
+    try:
+        str(message.text)
+    except UnicodeEncodeError:
+        bot.send_message(chat_id=message.chat.id, text="Вы неправильно ввели название величины")
+        queskorost1 = bot.send_message(chat_id=message.chat.id, text="Из чего?")
+        bot.register_next_step_handler(queskorost1, queskorostvochto)
+    else:
+        try:
+            ureg(str(message.text.upper()))
+        except UndefinedUnitError:
+            bot.send_message(chat_id=message.chat.id, text="Вы неправильно ввели название величины")
+            queskorost1 = bot.send_message(chat_id=message.chat.id, text="Из чего?")
+            bot.register_next_step_handler(queskorost1, queskorostvochto)
+        else:
+            skorostizchego = list.append(message.text.upper())
+            queskorost2 = bot.send_message(chat_id=message.chat.id, text="Во что?")
+            bot.register_next_step_handler(queskorost2, converterskorost)
+
+def converterskorost(message):
+    try:
+        str(message.text)
+    except UnicodeEncodeError:
+        #при ошибке ввода цифры вместо слов
+        bot.send_message(chat_id=message.chat.id, text="Вы неправильно ввели название величины")
+        queskorost2 = bot.send_message(chat_id=message.chat.id, text="Во что?")
+        bot.register_next_step_handler(queskorost2, converterskorost)
+    else:
+        try:
+            ureg(str(message.text.upper()))
+        except UndefinedUnitError:
+            #при ошибке ввода меры
+            bot.send_message(chat_id=message.chat.id, text="Вы неправильно ввели название величины")
+            queskorost2 = bot.send_message(chat_id=message.chat.id, text="Во что?")
+            bot.register_next_step_handler(queskorost2, converterskorost)
+        else:
+            skorostvochto = list.append(message.text.upper())
+            speed = float(list[0]) * ureg(str(list[1]))
+            qspeed = speed.to(str(list[2]))
+            bot.send_message(chat_id=message.chat.id, text= qspeed)
+            refresh(message)
+
+
+
+def vremya(message):
+    #конвертер времени
+    bot.send_message(chat_id=message.message.chat.id, text="Список величин: second = s = sec, minute = min, hour = hr, \
+     day = d, week")
+    quevremya = bot.send_message(chat_id=message.message.chat.id, text="Скажите, пожалуйста, сколько перевести?")
+    bot.register_next_step_handler(quevremya, quevremyaizchego)
+
+def quevremyaizchego(message):
+    try:
+        float(message.text)
+    except ValueError:
+        bot.send_message(chat_id=message.chat.id, text="Пожалуйста, используйте числа")
+        quevremya = bot.send_message(chat_id=message.chat.id, text="Сколько?")
+        bot.register_next_step_handler(quevremya, quevremyaizchego)
+    else:
+        vremyaquantity = list.append(message.text)
+        quevremya1 = bot.send_message(chat_id=message.chat.id, text="Из чего?")
+        bot.register_next_step_handler(quevremya1, quevremyavochto)
+
+def quevremyavochto(message):
+    try:
+        str(message.text)
+    except UnicodeEncodeError:
+        bot.send_message(chat_id=message.chat.id, text="Вы неправильно ввели название величины")
+        quevremya1 = bot.send_message(chat_id=message.chat.id, text="Из чего?")
+        bot.register_next_step_handler(quevremya1, quevremyavochto)
+    else:
+        try:
+            ureg(str(message.text.upper()))
+        except UndefinedUnitError:
+            bot.send_message(chat_id=message.chat.id, text="Вы неправильно ввели название величины")
+            quevremya1 = bot.send_message(chat_id=message.chat.id, text="Из чего?")
+            bot.register_next_step_handler(quevremya1, quevremyavochto)
+        else:
+            vremyaizchego = list.append(message.text.upper())
+            quevremya2 = bot.send_message(chat_id=message.chat.id, text="Во что?")
+            bot.register_next_step_handler(quevremya2, convertervremya)
+
+def convertervremya(message):
+    try:
+        str(message.text)
+    except UnicodeEncodeError:
+        bot.send_message(chat_id=message.chat.id, text="Вы неправильно ввели название величины")
+        quevremya2 = bot.send_message(chat_id=message.chat.id, text="Во что?")
+        bot.register_next_step_handler(quevremya2, convertervremya)
+    else:
+        try:
+            ureg(str(message.text.upper()))
+        except UndefinedUnitError:
+            bot.send_message(chat_id=message.chat.id, text="Вы неправильно ввели название величины")
+            quevremya2 = bot.send_message(chat_id=message.chat.id, text="Во что?")
+            bot.register_next_step_handler(quevremya2, convertervremya)
+        else:
+            vremyavochto = list.append(message.text.upper())
+            tim = float(list[0]) * ureg(str(list[1]))
+            qtim = tim.to(str(list[2]))
+            bot.send_message(chat_id=message.chat.id, text= qtim)
+            refresh(message)
+
+def dlina(message):
+    #конвертер длины
+    bot.send_message(chat_id=message.message.chat.id, text="Список величин: meter = m, mile = mi, yard = yd")
+    quedlina = bot.send_message(chat_id=message.message.chat.id, text="Скажите, пожалуйста, сколько перевести?")
+    bot.register_next_step_handler(quedlina, quedlinaizchego)
+
+def quedlinaizchego(message):
+    try:
+        float(message.text)
+    except ValueError:
+        bot.send_message(chat_id=message.chat.id, text="Пожалуйста, используйте числа")
+        quedlina = bot.send_message(chat_id=message.chat.id, text="Сколько?")
+        bot.register_next_step_handler(quedlina, quedlinaizchego)
+    else:
+        dlinaquantity = list.append(message.text)
+        quedlina1 = bot.send_message(chat_id=message.chat.id, text="Из чего?")
+        bot.register_next_step_handler(quedlina1, quedlinavochto)
+
+def quedlinavochto(message):
+    try:
+        str(message.text)
+    except UnicodeEncodeError:
+        bot.send_message(chat_id=message.chat.id, text="Вы неправильно ввели название величины")
+        quedlina1 = bot.send_message(chat_id=message.chat.id, text="Из чего?")
+        bot.register_next_step_handler(quedlina1, quedlinavochto)
+    else:
+        try:
+            ureg(str(message.text.upper()))
+        except UndefinedUnitError:
+            bot.send_message(chat_id=message.chat.id, text="Вы неправильно ввели название величины")
+            quedlina1 = bot.send_message(chat_id=message.chat.id, text="Из чего?")
+            bot.register_next_step_handler(quedlina1, quedlinavochto)
+        else:
+            dlinaizchego = list.append(message.text.upper())
+            quedlina2 = bot.send_message(chat_id=message.chat.id, text="Во что?")
+            bot.register_next_step_handler(quedlina2, converterdlina)
+
+def converterdlina(message):
+    try:
+        str(message.text)
+    except UnicodeEncodeError:
+        bot.send_message(chat_id=message.chat.id, text="Вы неправильно ввели название величины")
+        quedlina2 = bot.send_message(chat_id=message.chat.id, text="Во что?")
+        bot.register_next_step_handler(quedlina2, converterdlina)
+    else:
+        try:
+            ureg(str(message.text.upper()))
+        except UndefinedUnitError:
+            bot.send_message(chat_id=message.chat.id, text="Вы неправильно ввели название величины")
+            quedlina2 = bot.send_message(chat_id=message.chat.id, text="Во что?")
+            bot.register_next_step_handler(quedlina2, converterdlina)
+        else:
+            dlinavochto = list.append(message.text.upper())
+            leng = float(list[0]) * ureg(str(list[1]))
+            qleng = leng.to(str(list[2]))
+            bot.send_message(chat_id=message.chat.id, text= qleng)
+            refresh(message)
+
+def queskolko(message):
+    #конвертер валют
+    bot.send_message(chat_id=message.message.chat.id, text="Список валют: EUR - Euro Member Countries, \
+IDR - Indonesia Rupiah, BGN - Bulgaria Lev, ILS - Israel Shekel, GBP - United Kingdom Pound, DKK - Denmark Krone, \
+CAD - Canada Dollar, JPY - Japan Yen, HUF - Hungary Forint, RON - Romania New Leu, MYR - Malaysia Ringgit, SEK - \
+Sweden Krona, SGD - Singapore Dollar, HKD - Hong Kong Dollar, AUD - Australia Dollar, CHF - Switzerland Franc, \
+KRW - Korea (South) Won, CNY - China Yuan Renminbi, TRY - Turkey Lira, HRK - Croatia Kuna, NZD - New Zealand \
+Dollar, THB - Thailand Baht, USD - United States Dollar, NOK - Norway Krone, RUB - Russia Ruble, INR - India \
+Rupee, MXN - Mexico Peso, CZK - Czech Republic Koruna, BRL - Brazil Real, PLN - Poland Zloty, PHP - Philippines \
+Peso, ZAR - South Africa Rand")
+    que = bot.send_message(chat_id=message.message.chat.id, text="Скажите, пожалуйста, сколько перевести?")
+    bot.register_next_step_handler(que, queizchego)
+
+
+def queizchego(message):
+    try:
+        float(message.text)
+    except ValueError:
+        bot.send_message(chat_id=message.chat.id, text="Пожалуйста, используйте числа")
+        que = bot.send_message(chat_id=message.chat.id, text="Сколько?")
+        bot.register_next_step_handler(que, queizchego)
+    else:
+        quantity = list.append(message.text)
+        que1 = bot.send_message(chat_id=message.chat.id, text="Из чего?")
+        bot.register_next_step_handler(que1, quevochto)
+
+
+def quevochto(message):
+    try:
+        str(message.text)
+    except UnicodeEncodeError:
+        bot.send_message(chat_id=message.chat.id, text="Вы неправильно ввели название валюты")
+        que1 = bot.send_message(chat_id=message.chat.id, text="Из чего?")
+        bot.register_next_step_handler(que1, quevochto)
+    else:
+        try:
+            get_rates(str(message.text.upper()))
+        except RatesNotAvailableError:
+            bot.send_message(chat_id=message.chat.id, text="Вы неправильно ввели название валюты")
+            que1 = bot.send_message(chat_id=message.chat.id, text="Из чего?")
+            bot.register_next_step_handler(que1, quevochto)
+        else:
+            izchego = list.append(message.text.upper())
+            que2 = bot.send_message(chat_id=message.chat.id, text="Во что?")
+            bot.register_next_step_handler(que2, converter)
+
+
+def converter(message):
+    try:
+        str(message.text)
+    except UnicodeEncodeError:
+        bot.send_message(chat_id=message.chat.id, text="Вы неправильно ввели название валюты")
+        que2 = bot.send_message(chat_id=message.chat.id, text="Во что?")
+        bot.register_next_step_handler(que2, converter)
+    else:
+        try:
+            get_rates(str(message.text.upper()))
+        except RatesNotAvailableError:
+            bot.send_message(chat_id=message.chat.id, text="Вы неправильно ввели название валюты")
+            que2 = bot.send_message(chat_id=message.chat.id, text="Во что?")
+            bot.register_next_step_handler(que2, converter)
+        else:
+            vochto = list.append(message.text.upper())
+            c = CurrencyRates()
+            q = c.convert(str(list[1]), str(list[2]), float(list[0]))
+            bot.send_message(chat_id=message.chat.id, text=str(float(list[0])) + " " + str(list[1]) + " " + "=" + " " + \
+                                                           str(round(float(q), 4)) + ' ' + str(list[2]))
+            refresh(message)
+
+
+
+def refresh(message):
+    #клавиатура перезапуска
+    list[:] = []
+    markup = types.InlineKeyboardMarkup(row_width=1)
+    button1 = types.InlineKeyboardButton("Да", callback_data="first1")
+    button2 = types.InlineKeyboardButton("Нет, спасибо", callback_data="second1")
+    markup.add(button1, button2)
+    bot.send_message(message.chat.id, "К началу?", reply_markup=markup)
+    # КЛАВИАТУРА
+
+def kypc(message):
+    #вывод курса валют
+    c = CurrencyRates()
+    list1 = ['USD', "EUR", "GBP", "JPY", "KRW", "HKD"]
+    for i in list1:
+        q = c.convert(str(i), "RUB", 1)
+        bot.send_message(chat_id=message.message.chat.id,
+                         text=str(1) + " " + str(i) + " " + '=' + " " + str(round(float(q), 4)) + " " + \
+                              "RUB")
+    markup = types.InlineKeyboardMarkup(row_width=1)
+    button1 = types.InlineKeyboardButton("Да", callback_data="first1")
+    button2 = types.InlineKeyboardButton("Нет, спасибо", callback_data="second1")
+    markup.add(button1, button2)
+    bot.send_message(chat_id=message.message.chat.id, text="К началу?", reply_markup=markup)
+    # КЛАВИАТУРА
+
+
+
+while True:
+    try:
+        bot.polling(none_stop=True)
+    except Exception as e:
+        telebot.logger.error(e)
+        time.sleep(5)
